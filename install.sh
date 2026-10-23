@@ -12,7 +12,11 @@ CACHE_DIR="$HOME/.cache/gnome-cursor-usage"
 DAEMON_LOG="$CACHE_DIR/daemon.log"
 BIN="$ROOT/bin/gnome-cursor-usage"
 DAEMON_MATCH="gnome-cursor-usage --daemon"
-LEGACY_DAEMON_MATCH="cursor-usage-indicator --daemon"
+LEGACY_DAEMON_PATTERNS=(
+  "cursor-usage-indicator --daemon"
+  "cursor_usage_indicator --daemon"
+  "gnome_cursor_usage --daemon"
+)
 
 chmod +x "$BIN"
 
@@ -67,18 +71,20 @@ X-GNOME-Autostart-enabled=true
 EOF
 
 echo "==> Restart daemon"
-pkill -f "$LEGACY_DAEMON_MATCH" 2>/dev/null || true
-pkill -f "$DAEMON_MATCH" 2>/dev/null || true
+for pat in "${LEGACY_DAEMON_PATTERNS[@]}" "$DAEMON_MATCH"; do
+  pkill -f "$pat" 2>/dev/null || true
+done
 sleep 2
-if pgrep -f "$LEGACY_DAEMON_MATCH" >/dev/null || pgrep -f "$DAEMON_MATCH" >/dev/null; then
-  pkill -9 -f "$LEGACY_DAEMON_MATCH" 2>/dev/null || true
-  pkill -9 -f "$DAEMON_MATCH" 2>/dev/null || true
-  sleep 1
-fi
+for pat in "${LEGACY_DAEMON_PATTERNS[@]}" "$DAEMON_MATCH"; do
+  if pgrep -f "$pat" >/dev/null; then
+    pkill -9 -f "$pat" 2>/dev/null || true
+  fi
+done
+sleep 1
 nohup "$BIN" --daemon --interval "$REFRESH_INTERVAL_SEC" \
   >>"$DAEMON_LOG" 2>&1 &
 sleep 0.5
-if pgrep -f "$DAEMON_MATCH" >/dev/null; then
+if pgrep -f "gnome_cursor_usage --daemon" >/dev/null; then
   echo "    daemon running (log: $DAEMON_LOG)"
 else
   echo "    warning: daemon did not start — see $DAEMON_LOG"
