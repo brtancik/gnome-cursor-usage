@@ -19,6 +19,18 @@ A **Python daemon** (autostart) reads your session, calls Cursor’s usage API, 
 
 The daemon refreshes the cache every **5 minutes** by default; the extension re-reads it every **30 seconds**. **Refresh now** in the menu runs an immediate fetch and updates the bar as soon as it finishes.
 
+### Panel bar colors
+
+The progress bar uses the same **included usage %** shown in the panel (`$ used / limit` and the number beside it — from the dashboard “included” bucket, not a separate token counter):
+
+| Usage | Bar | Label text |
+|-------|-----|------------|
+| **Below 80%** | Neutral gray | Light |
+| **80%–94%** | Yellow (warning) | Dark (readability on yellow) |
+| **95% and above** | Burgundy (critical) | Light |
+
+The amount and percentage in the bar are **bold** so they stand out as usage climbs.
+
 **Requirements:** GNOME Shell 45+, Cursor logged in, Python 3.10+ (stdlib only).
 
 ## Install
