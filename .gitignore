@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Built extension archives (install.sh regenerates)
+gnome-extension/*.zip
+
+# Local / editor
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+
+# Never commit secrets or machine-local runtime data
+.env
+.env.*
+*.pem
+status.json

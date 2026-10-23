@@ -1,0 +1,9 @@
+{
+  "name": "Cursor Usage",
+  "description": "Cursor usage/credit on the top panel (local cache).",
+  "uuid": "gnome-cursor-usage@local",
+  "shell-version": ["45", "46", "47"],
+  "session-modes": ["user"],
+  "version": 29,
+  "url": "https://cursor.com/dashboard/usage"
+}
