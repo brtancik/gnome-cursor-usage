@@ -170,8 +170,19 @@ function menuLinesFromSnapshot(snap) {
     }
     if (snap.on_demand_used_cents != null)
         lines.push(`On-demand: ${formatMoney(snap.on_demand_used_cents)}`);
-    if (snap.billing_cycle_end)
-        lines.push(`Resets on: ${snap.billing_cycle_end}`);
+    if (snap.billing_cycle_end) {
+        let resetLine = `Resets on: ${snap.billing_cycle_end}`;
+        const days = snap.days_until_reset;
+        if (typeof days === 'number') {
+            if (days === 0)
+                resetLine += ' (today)';
+            else if (days === 1)
+                resetLine += ' (1 day remaining)';
+            else
+                resetLine += ` (${days} days remaining)`;
+        }
+        lines.push(resetLine);
+    }
     if (snap.status_line)
         lines.push(String(snap.status_line));
     if (snap.fetched_at) {

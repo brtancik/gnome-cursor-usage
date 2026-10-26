@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 _PERCENT_RE = re.compile(r"used\s+(\d+(?:\.\d+)?)\s*%", re.I)
 
@@ -37,7 +37,7 @@ def _money(cents):
     return "$%s" % format(cents / 100.0, ",.2f")
 
 
-def _parse_reset_date(payload):
+def _parse_billing_cycle_end_date(payload) -> date | None:
     raw = payload.get("billingCycleEnd")
     if raw is None:
         return None
@@ -45,10 +45,32 @@ def _parse_reset_date(payload):
         s = str(raw).strip()
         if s.isdigit():
             ms = int(s)
-            return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
-        return datetime.fromisoformat(s.replace("Z", "+00:00")).strftime("%Y-%m-%d")
+            return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).date()
+        return datetime.fromisoformat(s.replace("Z", "+00:00")).date()
     except (TypeError, ValueError, OSError):
         return None
+
+
+def _parse_reset_date(payload):
+    d = _parse_billing_cycle_end_date(payload)
+    return d.isoformat() if d else None
+
+
+def _days_until_reset(end: date | None) -> int | None:
+    if end is None:
+        return None
+    today = datetime.now().astimezone().date()
+    return max(0, (end - today).days)
+
+
+def _format_resets_on_line(end_str: str, days: int | None) -> str:
+    if days is None:
+        return "Resets on: %s" % end_str
+    if days == 0:
+        return "Resets on: %s (today)" % end_str
+    if days == 1:
+        return "Resets on: %s (1 day remaining)" % end_str
+    return "Resets on: %s (%d days remaining)" % (end_str, days)
 
 
 @dataclass
@@ -64,6 +86,7 @@ class UsageSnapshot:
     remaining_cents: int | None = None
     on_demand_used_cents: int | None = None
     billing_cycle_end: str | None = None
+    days_until_reset: int | None = None
     status_line: str | None = None
     fetched_at: datetime | None = None
 
@@ -106,7 +129,7 @@ class UsageSnapshot:
         if self.on_demand_used_cents is not None:
             lines.append("On-demand: %s" % _money(self.on_demand_used_cents))
         if self.billing_cycle_end:
-            lines.append("Resets on: %s" % self.billing_cycle_end)
+            lines.append(_format_resets_on_line(self.billing_cycle_end, self.days_until_reset))
         if self.status_line:
             lines.append(self.status_line)
         if self.fetched_at:
@@ -179,6 +202,7 @@ def snapshot_from_limits(payload: dict, email: str | None = None) -> UsageSnapsh
         if msg:
             status_bits.append(str(msg))
 
+    cycle_end = _parse_billing_cycle_end_date(payload)
     return UsageSnapshot(
         email=email,
         membership_type=payload.get("membershipType"),
@@ -192,7 +216,8 @@ def snapshot_from_limits(payload: dict, email: str | None = None) -> UsageSnapsh
         on_demand_used_cents=_optional_i(on_demand, "used")
         if on_demand.get("used") is not None
         else _optional_i(team_od, "used"),
-        billing_cycle_end=_parse_reset_date(payload),
+        billing_cycle_end=cycle_end.isoformat() if cycle_end else None,
+        days_until_reset=_days_until_reset(cycle_end),
         status_line=status_bits[0] if status_bits else None,
         fetched_at=datetime.now(timezone.utc),
     )
